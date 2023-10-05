@@ -1,13 +1,9 @@
 
 import os.path
+import plotly.graph_objects as go
 from PIL import Image
 from PIL.ExifTags import TAGS
-
-import dash
-import dash_core_components as dcc
-import dash_html_components as html
-from dash.dependencies import Input, Output
-import plotly.express as px
+from datetime import datetime
 
 
 
@@ -23,14 +19,17 @@ file = os.listdir("FOTOS")
 dir = os.getcwd() + "\\FOTOS"
 os.chdir(dir)
 
-# FILE 2 CORRESPONDE A CARPETA FOTOS
-# dir = os.getcwd() + "\\" + file[2]
-# file[2]
-
 date_create_photo = {}
 dict_datos = []
+nombre_archivo = []
+fecha_total = []
+fecha_foto = []
+hora_foto = []
+diferencia_vlr_dias = []
 
-value_KWh = [496398,
+
+value_KWh = [
+        496398,
         496398,
         496398,
         496447,
@@ -118,8 +117,6 @@ value_KWh = [496398,
         496709,
 ]
 
-image = Image.open(file[0])
-
 for i in file:
     # open the image
     image = Image.open(i)
@@ -142,7 +139,6 @@ for i in file:
         if tagname == "DateTime":
             date_create_photo[i] = value
 
-
 for files in file:
     fecha = date_create_photo.get(files, "Fecha no encontrada")
     valor_KWh = value_KWh[file.index(files)]
@@ -156,61 +152,78 @@ for files in file:
     dict_datos.append(archivo_dict)
 
 
-print(dict_datos)
+# IMPRIMIR Y MOSTRAR LOS VALORES POR ITEMS ESPECÍFICOS
+for dato in dict_datos:
+    nombre_archivo.append(dato['nombre_archivo'])
+    fecha_total.append(dato['fecha'])
 
-dict_datos[0]
+
+    # Hacer algo con los valores
+    #print(f"Nombre de archivo: {nombre_archivo}")
+    #print(f"Fecha: {fecha}")
+    #print(f"Value_KWs: {value_KWs}")
+    #print("----")
+
+
+# SEPARAR HORA DE FECHA
+for fecha_hora in fecha_total:
+    partes = fecha_hora.split(' ')
+
+    if len(partes) == 2:
+        fecha = partes[0]
+        hora = partes[1]
+
+        fecha_foto.append(fecha)
+        hora_foto.append(hora)
+
+
+# ------------------------------------------------------------------------------------------------------------------------------------------------ #
+# CALCULOS INTERMEDIOS PARA PRESENTACIÓN DE INFORMACIÓN
+# ------------------------------------------------------------------------------------------------------------------------------------------------ #
+
+
+for i in range(1,len(value_KWh)):
+    diferencia = value_KWh[i] - value_KWh[i-1]
+    diferencia_vlr_dias.append(diferencia)
+
 
 # ------------------------------------------------------------------------------------------------------------------------------------------------ #
 # GRAFICAR DATOS DE VARIABLES
 # ------------------------------------------------------------------------------------------------------------------------------------------------ #
 
-app = dash.Dash(__name__)
+# Create figure
+fig = go.Figure()
 
+len(diferencia_vlr_dias)
 
+fig.add_trace(go.Scatter(x=list(fecha_total), y=list(value_KWh)))
+#fig.add_trace(
+#    go.Histogram(x=list(fecha_total), y=list(value_KWh)))
 
-# Diseño de la aplicación
-app.layout = html.Div([
-    html.H1('KWs vs Fecha'),
-    
-    # Filtro interactivo
-    dcc.RangeSlider(
-        id='filtro-fecha',
-        min=0,
-        max=len(dict_datos) - 1,
-        step=1,
-        marks={i: {'label': dict_datos[i]['fecha']} for i in range(len(dict_datos))},
-        value=[0, len(dict_datos) - 1]
-    ),
-    
-    # Gráfico interactivo
-    dcc.Graph(id='grafico-kws-vs-fecha')
-])
-
-# Callback para actualizar el gráfico
-@app.callback(
-    Output('grafico-kws-vs-fecha', 'figure'),
-    Input('filtro-fecha', 'value')
+# Set title
+fig.update_layout(
+    title_text="Time series with range slider and selectors"
 )
-def actualizar_grafico(filtro_fecha):
-    datos_filtrados = dict_datos[filtro_fecha[0]:filtro_fecha[1] + 1]
-    fig = px.scatter(
-        datos_filtrados,
-        x='fecha',
-        y='value_KWs',
-        text='nombre_archivo',
-        title='KW vs. Fecha con Nombre del Archivo'
+
+# Add range slider
+fig.update_layout(
+    xaxis=dict(
+
+        rangeselector=dict(
+            buttons=list([
+                dict(step="all")
+            ])
+        ),
+        rangeslider=dict(
+            visible=True
+        ),
+        type="date"
     )
+)
 
-    fig.update_xaxes(title_text='Fecha')
-    fig.update_yaxes(title_text='Valor de KWs')
-    
-    return fig
+fig.show()
 
 
-
-
-if __name__ == '__main__':
-    app.run_server(debug=True)
 
 
 
